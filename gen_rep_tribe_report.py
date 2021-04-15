@@ -46,7 +46,7 @@ class c_pet_rep_data(object):
 
     def geturl(self, url):
         self.logger.debug('Retrieve url: {}'.format(url))
-        data = {'username': "a3liu", 'password': "Srq0422~"}
+        data = {'username': "a3liu", 'password': "xxxxxx"}
         headers = {'content-type': 'application/json',
                    'referer':'https://rep-portal.wroclaw.nsn-rdnet.net/login/',
                    'origin': 'https://rep-portal.wroclaw.nsn-rdnet.net',
