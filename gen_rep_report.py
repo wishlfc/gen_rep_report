@@ -10,7 +10,6 @@ import json
 import datetime
 
 sys.path.append('/home/work/tacase_dev/Resource')
-from lib_common.pet_proxy import MyProxy
 from pet_ipalib import IpaMmlItem
 log_level = logging.DEBUG
 
@@ -31,7 +30,7 @@ fb_info =   {
             'FB2113':'2021,12,8-2022,1,4'
             }
 
-class c_pet_rep_data(MyProxy):
+class c_pet_rep_data(object):
 
     def __init__(self, aceesskey=''):
         logging.getLogger('chardet.charsetprober').setLevel(logging.INFO)
@@ -41,11 +40,12 @@ class c_pet_rep_data(MyProxy):
             datefmt='%H:%M:%S',
             level=log_level)
         self.logger.setLevel(log_level)
-        self.set_proxy()
+        self.proxies = {}
+        # self.set_proxy()
 
     def geturl(self, url):
         self.logger.debug('Retrieve url: {}'.format(url))
-        data = {'username': "xxx", 'password': "xxxxxx"}
+        data = {'username': "a3liu", 'password': "Srq0422~"}
         headers = {'content-type': 'application/json',
                    'referer':'https://rep-portal.wroclaw.nsn-rdnet.net/login/',
                    'origin': 'https://rep-portal.wroclaw.nsn-rdnet.net',
@@ -140,9 +140,14 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
             if test.res_tester not in tester_list:
                 tester_list.append(test.res_tester)
             test.status = i['status']
-            last_runtime = i['last_testrun']['timestamp'].split('T')[0]
-            test.last_runtime = datetime.datetime.strptime(last_runtime, "%Y-%m-%d").strftime("%Y-%m-%d")
-            # test.need_run = 'NO'
+            # last_runtime = i['last_testrun']['timestamp'].split('T')[0]
+            # test.last_runtime = datetime.datetime.strptime(last_runtime, "%Y-%m-%d").strftime("%Y-%m-%d")
+            if i['last_testrun'] == None:
+                last_runtime = 'NULL'
+                test.last_runtime = 'NULL'
+            else:
+                last_runtime = i['last_testrun']['timestamp'].split('T')[0]
+                test.last_runtime = datetime.datetime.strptime(last_runtime, "%Y-%m-%d").strftime("%Y-%m-%d")
             test_results.append(test)
         count_case_results = []
         count_pr_status = []
@@ -163,26 +168,34 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
             fb, executable_days, starttime, deadline =  self.get_deadline_for_case(test_entity)
             for j in test_results:
                 all_total_num +=1
-                if j.status == 'Failed':
-                    all_failed_num += 1
+                if j['last_runtime'] == 'NULL':
+                    all_norun_num += 1
+                    if j.res_tester_email not in norun_testers_email:
+                        norun_testers_email.append( j.res_tester_email)
                 else:
-                    if j.last_runtime >= starttime and j.last_runtime <= deadline:
-                        if j.status == 'Passed':
-                            all_passed_num +=1
-                    else:
-                        all_norun_num += 1
-                        if j.res_tester_email not in norun_testers_email:
-                            norun_testers_email.append( j.res_tester_email)
-                if j.res_tester == tester:
-                    total_num += 1
-                    if j['status'] == 'Failed':
-                        failed_num += 1
+                    if j.status == 'Failed':
+                        all_failed_num += 1
                     else:
                         if j.last_runtime >= starttime and j.last_runtime <= deadline:
                             if j.status == 'Passed':
-                                passed_num += 1
+                                all_passed_num +=1
                         else:
-                            norun_num += 1 
+                            all_norun_num += 1
+                            if j.res_tester_email not in norun_testers_email:
+                                norun_testers_email.append( j.res_tester_email)
+                if j.res_tester == tester:
+                    total_num += 1
+                    if j['last_runtime'] == 'NULL':
+                        norun_num += 1
+                    else:
+                        if j['status'] == 'Failed':
+                            failed_num += 1
+                        else:
+                            if j.last_runtime >= starttime and j.last_runtime <= deadline:
+                                if j.status == 'Passed':
+                                    passed_num += 1
+                            else:
+                                norun_num += 1 
             line = '{},{},{},{},{},{},{},{},{}'.format(tester, total_num, passed_num, failed_num, norun_num, executable_days, starttime, deadline, fb)
             count_case_results.append(line)
         total_line = '{},{},{},{},{},{},{},{},{}'.format('Total Num', all_total_num, all_passed_num, all_failed_num, all_norun_num, executable_days, starttime, deadline, fb)
@@ -291,6 +304,8 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
                     colorword = 'color="green"'
                 elif item.lower() == 'red':
                     colorword = 'color="red"'
+                elif item.lower() == 'orange':
+                    colorword = 'color="orange"'
                 elif item.lower() == "yellow":
                     colorword = 'color="#FFCC00"'
                 elif item == lines[i].split('|')[0]:
@@ -341,7 +356,8 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
             level =  ''
 
         mail_host="smtp.XXX.com"
-        sender = 'amy.c.liu@nokia-sbell.com'
+        # sender = 'amy.c.liu@nokia-sbell.com'
+        sender = 'I_MN_HZ_RRM6_TA@nokia-sbell.com'
         if level or datetime.datetime.now().weekday() + 1 == 3:
             all_norun_addr = self.get_all_norun_addr() + ['liguo.zhang@nokia-sbell.com']
         else:

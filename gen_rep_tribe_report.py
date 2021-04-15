@@ -46,7 +46,7 @@ class c_pet_rep_data(object):
 
     def geturl(self, url):
         self.logger.debug('Retrieve url: {}'.format(url))
-        data = {'username': "xxx", 'password': "xxxxxx"}
+        data = {'username': "a3liu", 'password': "Srq0422~"}
         headers = {'content-type': 'application/json',
                    'referer':'https://rep-portal.wroclaw.nsn-rdnet.net/login/',
                    'origin': 'https://rep-portal.wroclaw.nsn-rdnet.net',
@@ -177,7 +177,7 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
             if team_norun_num != 0:
                 norun_team_lpo.append(team_lpo[team])
         print(count_case_results)
-        print(norun_team_lpo)
+        # print(norun_team_lpo)
         count_pr_status = []
         return count_case_results,count_pr_status,executable_days,norun_team_lpo
 
@@ -306,14 +306,15 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
             level =  ''     
 
         mail_host="smtp.XXX.com"
-        sender = 'amy.c.liu@nokia-sbell.com'
+        # sender = 'amy.c.liu@nokia-sbell.com'
+        sender = 'I_MN_HZ_RRM6_TA@nokia-sbell.com'
         receivers = ['amy.c.liu@nokia-sbell.com']
         if level:
             norun_lpo_list = self.get_all_norun_addr()
             self.logger.info('Stil has no run cases team:{}'.format(norun_lpo_list))
         else:
             norun_lpo_list = []
-        norun_lpo_list = []
+        # norun_lpo_list = []
         receivers = receivers + norun_lpo_list
         self.logger.info(receivers)
         smtp_server = 'mail.emea.nsn-intra.net' 
@@ -363,6 +364,7 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
             all_norun_addr = c.cit_norun_team_lpo + c.crt_norun_team_lpo + c.manual_norun_team_lpo
         else:
             all_norun_addr = []
+        all_norun_addr = list(set(all_norun_addr))
         return all_norun_addr
 
 if __name__ == '__main__':
