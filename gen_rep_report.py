@@ -9,10 +9,7 @@ import requests
 import json
 import datetime
 
-sys.path.append('/home/work/tacase_dev/Resource')
-from pet_ipalib import IpaMmlItem
 log_level = logging.DEBUG
-
 
 fb_info =   {
             'FB2101':'2021,1,6-2021,2,2',
@@ -78,7 +75,7 @@ class c_pet_rep_data(object):
 
     def get_case_data(self, team, releases, domain, project, test_entity, limit):
         url = 'https://rep-portal.wroclaw.nsn-rdnet.net/api/qc/instances/report/?fields=no,id,status_color,\
-tep_status_color,qc_id__id,test_set__qc_id,test_case__qc_id,url,fault_report_id_link,origin,m_path,\
+wall_status,tep_status_color,qc_id__id,test_set__qc_id,test_case__qc_id,url,fault_report_id_link,origin,m_path,\
 test_set__name,name,test_case__path,test_plan_folder,status,platform,priority,test_subarea,test_object,\
 test_entity,test_lvl_area,ca,organization,phase,det_auto_lvl,fault_report_id,res_tester,res_tester_email,feature,features,\
 requirement,acceptance_criteria,delivery_package,suspension_end,pronto_view_type,last_testrun__timestamp,add_test_run&limit={}&\
@@ -130,24 +127,25 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
         test_results = []
         tester_list = []
         for i in results:
-            test = IpaMmlItem()
-            test.qc_id = i['qc_id']['id']
-            test.res_tester = i['res_tester']
-            test.res_tester_email = i['res_tester_email']
-            test.fault_id = i['fault_report_id_link'][0]['id']
-            test.fault_color = i['fault_report_id_link'][0]['color']
-            test.fault_link = i['fault_report_id_link'][0]['link']
-            if test.res_tester not in tester_list:
-                tester_list.append(test.res_tester)
-            test.status = i['status']
+            test = {}
+            test['qc_id'] = i['qc_id']['id']
+            test['res_tester'] = i['res_tester']
+            test['res_tester_email'] = i['res_tester_email']
+            test['fault_id'] = i['fault_report_id_link'][0]['id']
+            test['fault_color'] = i['fault_report_id_link'][0]['color']
+            test['fault_link'] = i['fault_report_id_link'][0]['link']
+            test['run_status'] = i['wall_status']['status']
+            if test['res_tester'] not in tester_list:
+                tester_list.append(test['res_tester'])
+            test['status'] = i['status']
             # last_runtime = i['last_testrun']['timestamp'].split('T')[0]
             # test.last_runtime = datetime.datetime.strptime(last_runtime, "%Y-%m-%d").strftime("%Y-%m-%d")
             if i['last_testrun'] == None:
                 last_runtime = 'NULL'
-                test.last_runtime = 'NULL'
+                test['last_runtime'] = 'NULL'
             else:
                 last_runtime = i['last_testrun']['timestamp'].split('T')[0]
-                test.last_runtime = datetime.datetime.strptime(last_runtime, "%Y-%m-%d").strftime("%Y-%m-%d")
+                test['last_runtime'] = datetime.datetime.strptime(last_runtime, "%Y-%m-%d").strftime("%Y-%m-%d")
             test_results.append(test)
         count_case_results = []
         count_pr_status = []
@@ -156,68 +154,102 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
         count_case_results.append(title)
         title_pr = 'Tester,Case Id,Pronto Id,Pronto Status,Link'
         count_pr_status.append(title_pr)
-        for tester in tester_list:
-            total_num = 0
-            passed_num = 0
-            failed_num = 0
-            norun_num = 0
-            all_total_num = 0
-            all_passed_num = 0
-            all_failed_num = 0
-            all_norun_num = 0
-            fb, executable_days, starttime, deadline =  self.get_deadline_for_case(test_entity)
-            for j in test_results:
-                all_total_num +=1
-                if j['last_runtime'] == 'NULL':
-                    all_norun_num += 1
-                    if j.res_tester_email not in norun_testers_email:
-                        norun_testers_email.append( j.res_tester_email)
-                else:
-                    if j.status == 'Failed':
-                        all_failed_num += 1
+        if test_entity.upper() == 'CIT':
+            for tester in tester_list:
+                total_num = 0
+                passed_num = 0
+                failed_num = 0
+                norun_num = 0
+                all_total_num = 0
+                all_passed_num = 0
+                all_failed_num = 0
+                all_norun_num = 0
+                fb, executable_days, starttime, deadline =  self.get_deadline_for_case(test_entity)
+                for j in test_results:
+                    all_total_num +=1
+                    if j['run_status'] == 'No Run':
+                        all_norun_num += 1
+                        if j['res_tester_email'] not in norun_testers_email:
+                            norun_testers_email.append( j['res_tester_email'])
                     else:
-                        if j.last_runtime >= starttime and j.last_runtime <= deadline:
-                            if j.status == 'Passed':
-                                all_passed_num +=1
+                        if j['run_status'] == 'Failed':
+                            all_failed_num += 1
+                        if j['run_status'] == 'Passed':
+                            all_passed_num +=1
+                    if j['res_tester'] == tester:
+                        total_num += 1
+                        if j['run_status'] == 'No Run':
+                            norun_num += 1
                         else:
-                            all_norun_num += 1
-                            if j.res_tester_email not in norun_testers_email:
-                                norun_testers_email.append( j.res_tester_email)
-                if j.res_tester == tester:
-                    total_num += 1
+                            if j['run_status'] == 'Failed':
+                                failed_num += 1
+                            if j['run_status'] == 'Passed':
+                                passed_num += 1
+                line = '{},{},{},{},{},{},{},{},{}'.format(tester, total_num, passed_num, failed_num, norun_num, executable_days, starttime, deadline, fb)
+                count_case_results.append(line)
+        else:
+            for tester in tester_list:
+                total_num = 0
+                passed_num = 0
+                failed_num = 0
+                norun_num = 0
+                all_total_num = 0
+                all_passed_num = 0
+                all_failed_num = 0
+                all_norun_num = 0
+                fb, executable_days, starttime, deadline =  self.get_deadline_for_case(test_entity)
+                for j in test_results:
+                    all_total_num +=1
                     if j['last_runtime'] == 'NULL':
-                        norun_num += 1
+                        all_norun_num += 1
+                        if j['res_tester_email'] not in norun_testers_email:
+                            norun_testers_email.append( j['res_tester_email'])
                     else:
                         if j['status'] == 'Failed':
-                            failed_num += 1
+                            all_failed_num += 1
                         else:
-                            if j.last_runtime >= starttime and j.last_runtime <= deadline:
-                                if j.status == 'Passed':
-                                    passed_num += 1
+                            if j['last_runtime'] >= starttime and j['last_runtime'] <= deadline:
+                                if j['status'] == 'Passed':
+                                    all_passed_num +=1
                             else:
-                                norun_num += 1 
-            line = '{},{},{},{},{},{},{},{},{}'.format(tester, total_num, passed_num, failed_num, norun_num, executable_days, starttime, deadline, fb)
-            count_case_results.append(line)
+                                all_norun_num += 1
+                                if j['res_tester_email'] not in norun_testers_email:
+                                    norun_testers_email.append(j['res_tester_email'])
+                    if j['res_tester'] == tester:
+                        total_num += 1
+                        if j['last_runtime'] == 'NULL':
+                            norun_num += 1
+                        else:
+                            if j['status'] == 'Failed':
+                                failed_num += 1
+                            else:
+                                if j['last_runtime']  >= starttime and j['last_runtime']  <= deadline:
+                                    if j['status'] == 'Passed':
+                                        passed_num += 1
+                                else:
+                                    norun_num += 1 
+                line = '{},{},{},{},{},{},{},{},{}'.format(tester, total_num, passed_num, failed_num, norun_num, executable_days, starttime, deadline, fb)
+                count_case_results.append(line)
         total_line = '{},{},{},{},{},{},{},{},{}'.format('Total Num', all_total_num, all_passed_num, all_failed_num, all_norun_num, executable_days, starttime, deadline, fb)
         count_case_results.append(total_line)
 
         for j in test_results:
-            if j.fault_id:
-                line_pr = '{},{},{},{},{}'.format(j.res_tester, j.qc_id, j.fault_id, j.fault_color, j.fault_link)
+            if j['fault_id']:
+                line_pr = '{},{},{},{},{}'.format(j['res_tester'], j['qc_id'], j['fault_id'], j['fault_color'], j['fault_link'])
                 count_pr_status.append(line_pr)
-                if j.fault_color.lower() == 'green' and j.res_tester_email not in norun_testers_email:
-                    norun_testers_email.append( j.res_tester_email)
+                if j['fault_color'].lower() == 'green' and j['res_tester_email'] not in norun_testers_email:
+                    norun_testers_email.append( j['res_tester_email'])
         return count_case_results,count_pr_status,executable_days,norun_testers_email
         
     def get_fb_info(self):
         #'FB2101':'1,6,2021-2,2,2021',
         fb_list = []
         for k,v in fb_info.items():
-            info = IpaMmlItem()
-            info.fb = k
-            info.startdate = datetime.datetime.strptime(v.split('-')[0].replace(',','-'), "%Y-%m-%d").strftime("%Y-%m-%d")            
-            info.enddate = datetime.datetime.strptime(v.split('-')[1].replace(',','-'), "%Y-%m-%d").strftime("%Y-%m-%d")
-            info.middate = (datetime.datetime.strptime(info.startdate, "%Y-%m-%d") + datetime.timedelta(days=14)).strftime("%Y-%m-%d")
+            info = {}
+            info['fb'] = k
+            info['startdate'] = datetime.datetime.strptime(v.split('-')[0].replace(',','-'), "%Y-%m-%d").strftime("%Y-%m-%d")            
+            info['enddate'] = datetime.datetime.strptime(v.split('-')[1].replace(',','-'), "%Y-%m-%d").strftime("%Y-%m-%d")
+            info['middate'] = (datetime.datetime.strptime(info['startdate'], "%Y-%m-%d") + datetime.timedelta(days=14)).strftime("%Y-%m-%d")
             fb_list.append(info)
         return fb_list
 
@@ -226,22 +258,22 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
         fb_list = self.get_fb_info()
         for i in fb_list:
             if test_entity.lower() == "manual":
-                if today >= i.startdate and today <= i.enddate:
-                    fb = i.fb
-                    starttime = i.startdate
-                    deadline = i.enddate 
+                if today >= i['startdate'] and today <= i['enddate']:
+                    fb = i['fb']
+                    starttime = i['startdate']
+                    deadline = i['enddate'] 
             elif test_entity.lower() == "crt":
-                if today >= i.startdate and today <= i.middate:
-                    fb = i.fb
-                    starttime = i.startdate
-                    deadline = i.middate 
-                if today > i.middate and today <= i.enddate:
-                    fb = i.fb
-                    starttime = i.middate
-                    deadline = i.enddate 
+                if today >= i['startdate'] and today <= i['middate'] :
+                    fb = i['fb']
+                    starttime = i['startdate']
+                    deadline = i['middate'] 
+                if today > i['middate']  and today <= i['enddate'] :
+                    fb = i['fb']
+                    starttime = i['middate'] 
+                    deadline = i['enddate']  
             elif test_entity.lower() == "cit":
-                if today >= i.startdate and today <= i.enddate:
-                    fb = i.fb
+                if today >= i['startdate'] and today <= i['enddate'] :
+                    fb = i['fb']
                 yesterday = (datetime.datetime.now() + datetime.timedelta(days=-1)).strftime("%Y-%m-%d")
                 starttime = yesterday
                 deadline = today
@@ -254,28 +286,6 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
         for i in range(len(lines)):
             output.append('<tr>')      
             tstr = 'th' if i == 0 else 'td'
-            # tstr = 'td'
-            # colorbg_line = ''
-            # if lines[i].split('|')[1] == lines[i].split('|')[2]:
-            #     colorbg_line = 'bgcolor="#8FBC8B"'
-            # for item in lines[i].split('|'):
-            #     if  not item.isdigit() and item.lower() in ['tester', 'total', 'passed', 'failed', 'norun', 'executable days', 'start date',
-            #     'deadline', 'fb', 'case id', 'pronto id', 'pronto status', 'link', 'need run']:
-            #         colorword = 'color="#666"' 
-            #         colorbg = 'bgcolor="#d4d4d4"'
-            #     elif item.lower() == 'green':
-            #         colorword = 'color="green"'
-            #     elif item.lower() == 'red':
-            #         colorword = 'color="red"'
-            #     elif item == lines[i].split('|')[0]:
-            #         colorword = 'color="#666"'
-            #         colorbg = 'style="font-weight:bold"'
-            #     elif item.isdigit():
-            #         colorword = 'color="#666"'
-            #         colorbg = colorbg_line
-            #     else:
-            #         colorword = 'color="#666"'
-            #         colorbg = ''
             colorbg_line = ''
             norun_flag = ''
             if 'case' in test_entity:
@@ -291,8 +301,8 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
                     norun_flag = 'red'
             for j in range(len(lines[i].split('|'))):
                 item = lines[i].split('|')[j]
-                if 'https://' in item:
-                    line = '<td><a href="{}">Case Link</a></td>'.format(item)
+                if 'https://' in item and 'pronto' in test_entity.lower():
+                    line = '<td><a href="{}">Link</a></td>'.format(item)
                     output.append(line)
                     output.append('</tr>')
                     continue
@@ -330,7 +340,8 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
             output.append('</tr>')
         output.append('</table>')
         if 'case' in test_entity.lower():
-            output.append('Click the link: {}'.format(self._get_link(test_entity.lower().split()[0])))
+            output.append('Click the link: <a href="{}">Case Link</a>'.format(self._get_link(test_entity.lower().split()[0])))
+            # output.append('Click the link: {}'.format(self._get_link(test_entity.lower().split()[0])))
         output.append('<br/>')
         return output
 
@@ -363,10 +374,10 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
         else:
             all_norun_addr = []
         # all_norun_addr = []
-        self.logger.info(all_norun_addr)
+        self.logger.info("all_norun_addr is {}".format(all_norun_addr))
         receivers = ['amy.c.liu@nokia-sbell.com']
         receivers = receivers + all_norun_addr
-        self.logger.info(receivers)
+        # self.logger.info(receivers)
         smtp_server = 'mail.emea.nsn-intra.net' 
 
         mail_msg = "<p>REP Case Execution Result, Send By TA...</p>"
@@ -412,7 +423,7 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
         elif int(self.manual_executable_days) <=5 and int(self.crt_executable_days) <=5:
             all_norun_addr = c.cit_norun_testers_email + c.crt_norun_testers_email + c.manual_norun_testers_email
         else:
-            all_norun_addr = []
+            all_norun_addr = c.cit_norun_testers_email
         return all_norun_addr
 
 if __name__ == '__main__':
