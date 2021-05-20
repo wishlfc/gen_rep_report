@@ -81,7 +81,7 @@ class c_pet_rep_data(object):
 
     def get_tribe_case_data(self, ca, releases, domain, project, test_entity, limit):
         url = 'https://rep-portal.wroclaw.nsn-rdnet.net/api/qc/instances/report/?ca__pos_neg={}&fields=no,id,status_color,\
-tep_status_color,qc_id__id,test_set__qc_id,test_case__qc_id,url,fault_report_id_link,origin,m_path,\
+wall_status,tep_status_color,qc_id__id,test_set__qc_id,test_case__qc_id,url,fault_report_id_link,origin,m_path,\
 test_set__name,name,test_case__path,test_plan_folder,status,platform,priority,test_subarea,test_object,\
 test_entity,test_lvl_area,ca,organization,phase,det_auto_lvl,fault_report_id,res_tester,res_tester_email,feature,features,\
 requirement,acceptance_criteria,delivery_package,suspension_end,pronto_view_type,last_testrun__timestamp,add_test_run&limit={}&origin__domain__pos_neg={}&\
@@ -150,32 +150,52 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
         title = 'Team,Total,Passed,Failed,Norun,Executable Days,Start Date,Deadline,FB,Link'
         count_case_results.append(title)
         norun_team_lpo = []
-        for team,team_info in data.items():
-            team_total_num = int(len(team_info))
-            link = self._get_team_link(team, test_entity)
-            team_passed_num = 0
-            team_failed_num = 0
-            team_norun_num = 0
-            for i in team_info:
-                if i['last_testrun'] == None:
-                    last_runtime = 'NULL'
-                    i['last_runtime'] = 'NULL'
-                else:
-                    last_runtime = i['last_testrun']['timestamp'].split('T')[0]
-                    i['last_runtime'] = datetime.datetime.strptime(last_runtime, "%Y-%m-%d").strftime("%Y-%m-%d")
-                if i['status'] == 'Failed':
-                    team_failed_num += 1
-                else:
-                    if i['last_runtime'] != 'NULL' and (i['last_runtime'] >= starttime and i['last_runtime'] <= deadline):
-                        if i['status'] == 'Passed':
-                            team_passed_num +=1
-                    else:
+        if test_entity.upper() == 'CIT':
+            for team,team_info in data.items():
+                team_total_num = int(len(team_info))
+                link = self._get_team_link(team, test_entity)
+                team_passed_num = 0
+                team_failed_num = 0
+                team_norun_num = 0
+                for i in team_info:
+                    if i['wall_status']['status'] == 'No Run':
                         team_norun_num += 1
-            line = '{},{},{},{},{},{},{},{},{},{}'.format(
-                team, team_total_num, team_passed_num, team_failed_num, team_norun_num, executable_days, starttime, deadline, fb, link)
-            count_case_results.append(line)
-            if team_norun_num != 0:
-                norun_team_lpo.append(team_lpo[team])
+                    if i['wall_status']['status'] == 'Failed':
+                        team_failed_num += 1
+                    if i['wall_status']['status'] == 'Passed':
+                        team_passed_num +=1
+                line = '{},{},{},{},{},{},{},{},{},{}'.format(
+                    team, team_total_num, team_passed_num, team_failed_num, team_norun_num, executable_days, starttime, deadline, fb, link)
+                count_case_results.append(line)
+                if team_norun_num != 0:
+                    norun_team_lpo.append(team_lpo[team])
+        else:
+            for team,team_info in data.items():
+                team_total_num = int(len(team_info))
+                link = self._get_team_link(team, test_entity)
+                team_passed_num = 0
+                team_failed_num = 0
+                team_norun_num = 0
+                for i in team_info:
+                    if i['last_testrun'] == None:
+                        last_runtime = 'NULL'
+                        i['last_runtime'] = 'NULL'
+                    else:
+                        last_runtime = i['last_testrun']['timestamp'].split('T')[0]
+                        i['last_runtime'] = datetime.datetime.strptime(last_runtime, "%Y-%m-%d").strftime("%Y-%m-%d")
+                    if i['status'] == 'Failed':
+                        team_failed_num += 1
+                    else:
+                        if i['last_runtime'] != 'NULL' and (i['last_runtime'] >= starttime and i['last_runtime'] <= deadline):
+                            if i['status'] == 'Passed':
+                                team_passed_num +=1
+                        else:
+                            team_norun_num += 1
+                line = '{},{},{},{},{},{},{},{},{},{}'.format(
+                    team, team_total_num, team_passed_num, team_failed_num, team_norun_num, executable_days, starttime, deadline, fb, link)
+                count_case_results.append(line)
+                if team_norun_num != 0:
+                    norun_team_lpo.append(team_lpo[team])
         print(count_case_results)
         # print(norun_team_lpo)
         count_pr_status = []
@@ -239,6 +259,8 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
                 norun_flag = 'yellow'
             if executable_days.isdigit() and int(executable_days) <=red_days and int(executable_days) >0 and norun_num.isdigit() and int(norun_num) > 0:
                 norun_flag = 'red'
+            if executable_days.isdigit() and  int(executable_days) == 0 and norun_num.isdigit() and int(norun_num) > 0:
+                norun_flag = 'gray'
             for j in range(len(lines[i].split('|'))):
                 item = lines[i].split('|')[j]
                 if 'https://' in item:
@@ -271,9 +293,13 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
                 if norun_flag == 'red':
                     if j == 4:
                         colorbg = 'bgcolor="#f1707d"'
+                if norun_flag == 'gray':
+                    if j ==4:
+                        colorbg = 'bgcolor="#E0E0E0"'
                 if norun_flag == 'green':
                     if j in [1,2,3,4]:
                         colorbg = 'bgcolor="#8FBC8B"'
+
                 
                 output.append('<{} style="text-align:center" {}><font {}>{}</{}>'.format(tstr, colorbg, colorword, item, tstr))
             output.append('</tr>')
@@ -310,11 +336,14 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
         sender = 'I_MN_HZ_RRM6_TA@nokia-sbell.com'
         receivers = ['amy.c.liu@nokia-sbell.com']
         if level:
-            norun_lpo_list = self.get_all_norun_addr()
+            norun_lpo_list = self.get_all_norun_addr() + ['xiaodan.gu@nokia-sbell.com']
+            ccer = 'bo-chris.wang@nokia-sbell.com'
             self.logger.info('Stil has no run cases team:{}'.format(norun_lpo_list))
         else:
             norun_lpo_list = []
+            ccer = ''
         # norun_lpo_list = []
+        # ccer = ''
         receivers = receivers + norun_lpo_list
         self.logger.info(receivers)
         smtp_server = 'mail.emea.nsn-intra.net' 
@@ -331,8 +360,10 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
             msg = MIMEText('\n'.join(mail_message), 'html', 'utf-8')            
             from_ = sender
             to_   = ";".join(str(i) for i in receivers)
+            cc_   = ccer
             
             msg['From'] = from_
+            msg['Cc'] = cc_
             msg['To'] = to_
             # level = ''
             subject = '{} ALL SRAN Prod RRM Rep-portal Report {}'.format(level, date)
