@@ -299,6 +299,8 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
                     norun_flag = 'yellow'
                 if executable_days.isdigit() and int(executable_days) <=red_days and int(executable_days) >0 and norun_num.isdigit() and int(norun_num) > 0:
                     norun_flag = 'red'
+                if executable_days.isdigit() and  int(executable_days) == 0 and norun_num.isdigit() and int(norun_num) > 0:
+                    norun_flag = 'gray'
             for j in range(len(lines[i].split('|'))):
                 item = lines[i].split('|')[j]
                 if 'https://' in item and 'pronto' in test_entity.lower():
@@ -333,6 +335,9 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
                 if norun_flag == 'red':
                     if j == 4:
                         colorbg = 'bgcolor="#f1707d"'
+                if norun_flag == 'gray':
+                    if j ==4:
+                        colorbg = 'bgcolor="#E0E0E0"'
                 if norun_flag == 'green':
                     if j in [1,2,3,4]:
                         colorbg = 'bgcolor="#8FBC8B"'

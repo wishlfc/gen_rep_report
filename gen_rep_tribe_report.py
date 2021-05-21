@@ -366,7 +366,7 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
             msg['Cc'] = cc_
             msg['To'] = to_
             # level = ''
-            subject = '{} ALL SRAN Prod RRM Rep-portal Report {}'.format(level, date)
+            subject = '{} ALL RAN Pz 1 HAZ RRM Rep-portal Report {}'.format(level, date)
             msg['Subject'] =  Header(subject, 'utf-8')
             smtp.sendmail(sender, receivers, msg.as_string())
             self.logger.info('Send mail to %s successful, please check it.\n' %(to_))
