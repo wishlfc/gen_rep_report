@@ -81,7 +81,7 @@ class c_pet_rep_data(object):
 
     def get_tribe_case_data(self, ca, releases, domain, project, test_entity, limit):
         url = 'https://rep-portal.wroclaw.nsn-rdnet.net/api/qc/instances/report/?ca__pos_neg={}&fields=no,id,status_color,\
-wall_status,tep_status_color,qc_id__id,test_set__qc_id,test_case__qc_id,url,fault_report_id_link,origin,m_path,\
+wall_status,det_auto_lvl,tep_status_color,qc_id__id,test_set__qc_id,test_case__qc_id,url,fault_report_id_link,origin,m_path,\
 test_set__name,name,test_case__path,test_plan_folder,status,platform,priority,test_subarea,test_object,\
 test_entity,test_lvl_area,ca,organization,phase,det_auto_lvl,fault_report_id,res_tester,res_tester_email,feature,features,\
 requirement,acceptance_criteria,delivery_package,suspension_end,pronto_view_type,last_testrun__timestamp,add_test_run&limit={}&origin__domain__pos_neg={}&\
@@ -147,7 +147,7 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
     def analysis_tribe_execute_data(self, data, test_entity):
         count_case_results = []
         fb, executable_days, starttime, deadline =  self.get_deadline_for_case(test_entity)
-        title = 'Team,Total,Passed,Failed,Norun,Executable Days,Start Date,Deadline,FB,Link'
+        title = 'Team,Total,Passed,Failed,Norun,Postponed,Executable Days,Start Date,Deadline,FB,Link'
         count_case_results.append(title)
         norun_team_lpo = []
         if test_entity.upper() == 'CIT':
@@ -157,6 +157,7 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
                 team_passed_num = 0
                 team_failed_num = 0
                 team_norun_num = 0
+                team_postponed_num = 0
                 for i in team_info:
                     if i['wall_status']['status'] == 'No Run':
                         team_norun_num += 1
@@ -164,8 +165,10 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
                         team_failed_num += 1
                     if i['wall_status']['status'] == 'Passed':
                         team_passed_num +=1
-                line = '{},{},{},{},{},{},{},{},{},{}'.format(
-                    team, team_total_num, team_passed_num, team_failed_num, team_norun_num, executable_days, starttime, deadline, fb, link)
+                    if i['wall_status']['status'] == 'Postponed':
+                        team_postponed_num +=1
+                line = '{},{},{},{},{},{},{},{},{},{},{}'.format(
+                    team, team_total_num, team_passed_num, team_failed_num, team_norun_num, team_postponed_num, executable_days, starttime, deadline, fb, link)
                 count_case_results.append(line)
                 if team_norun_num != 0:
                     norun_team_lpo.append(team_lpo[team])
@@ -176,6 +179,7 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
                 team_passed_num = 0
                 team_failed_num = 0
                 team_norun_num = 0
+                team_postponed_num = 0
                 for i in team_info:
                     if i['last_testrun'] == None:
                         last_runtime = 'NULL'
@@ -183,16 +187,22 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
                     else:
                         last_runtime = i['last_testrun']['timestamp'].split('T')[0]
                         i['last_runtime'] = datetime.datetime.strptime(last_runtime, "%Y-%m-%d").strftime("%Y-%m-%d")
-                    if i['status'] == 'Failed':
-                        team_failed_num += 1
+
+                    if i['det_auto_lvl'] in ['99 - Planned']:
+                        continue
                     else:
-                        if i['last_runtime'] != 'NULL' and (i['last_runtime'] >= starttime and i['last_runtime'] <= deadline):
-                            if i['status'] == 'Passed':
-                                team_passed_num +=1
+                        if i['status'] == 'Failed':
+                            team_failed_num += 1
+                        elif i['status'] == 'Postponed':
+                            team_postponed_num += 1
                         else:
-                            team_norun_num += 1
-                line = '{},{},{},{},{},{},{},{},{},{}'.format(
-                    team, team_total_num, team_passed_num, team_failed_num, team_norun_num, executable_days, starttime, deadline, fb, link)
+                            if i['last_runtime'] != 'NULL' and (i['last_runtime'] >= starttime and i['last_runtime'] <= deadline):
+                                if i['status'] == 'Passed':
+                                    team_passed_num +=1
+                            else:
+                                team_norun_num += 1
+                line = '{},{},{},{},{},{},{},{},{},{},{}'.format(
+                    team, team_total_num, team_passed_num, team_failed_num, team_norun_num, team_postponed_num, executable_days, starttime, deadline, fb, link)
                 count_case_results.append(line)
                 if team_norun_num != 0:
                     norun_team_lpo.append(team_lpo[team])
@@ -268,7 +278,7 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
                     output.append(line)
                     output.append('</tr>')
                     continue
-                if  not item.isdigit() and item.lower() in ['tester', 'total', 'passed', 'failed', 'norun', 'executable days', 'start date',
+                if  not item.isdigit() and item.lower() in ['tester', 'total', 'passed', 'failed', 'norun', 'postponed', 'executable days', 'start date',
                 'deadline', 'fb', 'case id', 'pronto id', 'pronto status', 'link', 'need run']:
                     colorword = 'color="#666"' 
                     colorbg = 'bgcolor="#d4d4d4"'
