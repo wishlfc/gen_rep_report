@@ -92,18 +92,24 @@ origin__project__pos_neg={}&portal__releases={}&test_entity__pos_neg={}&ti_scope
             raise Exception('Get URL {} failed'.format(url))
 
     def _get_data(self, test_entity):
-        team = 'SRAN_Prod_HZH_RRM_6_Vrf'
+        # team = 'SRAN_Prod_HZH_RRM_6_Vrf'
+        team = 'RAN_PZ_HAZ_1_SG06'
         releases = 'SBTS00'
-        domain = 'MN_SRAN'
-        project = 'SRAN_SBTS'
+        # domain = 'MN_SRAN'
+        # project = 'SRAN_SBTS'
+        domain = 'mn_ran'
+        project = 'ran_st'
         limit='500'
         return self.get_case_data(team, releases, domain, project, test_entity, limit)
 
     def _get_link(self, test_entity):
-        team = 'SRAN_Prod_HZH_RRM_6_Vrf'
+        # team = 'SRAN_Prod_HZH_RRM_6_Vrf'
+        team = 'RAN_PZ_HAZ_1_SG06'
         releases = 'SBTS00'
-        domain = 'MN_SRAN'
-        project = 'SRAN_SBTS'
+        # domain = 'MN_SRAN'
+        # project = 'SRAN_SBTS'
+        domain = 'mn_ran'
+        project = 'ran_st'
         link = "https://rep-portal.wroclaw.nsn-rdnet.net/reports/qc/?organization=%22{}%22&releases={}&\
 domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain, project, test_entity)
         return link
@@ -154,17 +160,17 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
         count_case_results.append(title)
         title_pr = 'Tester,Case Id,Pronto Id,Pronto Status,Link'
         count_pr_status.append(title_pr)
+        fb, executable_days, starttime, deadline =  self.get_deadline_for_case(test_entity)
         if test_entity.upper() == 'CIT':
             for tester in tester_list:
-                total_num = 0
-                passed_num = 0
-                failed_num = 0
-                norun_num = 0
                 all_total_num = 0
                 all_passed_num = 0
                 all_failed_num = 0
                 all_norun_num = 0
-                fb, executable_days, starttime, deadline =  self.get_deadline_for_case(test_entity)
+                total_num = 0
+                passed_num = 0
+                failed_num = 0
+                norun_num = 0
                 for j in test_results:
                     all_total_num +=1
                     if j['run_status'] == 'No Run':
@@ -189,15 +195,14 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
                 count_case_results.append(line)
         else:
             for tester in tester_list:
-                total_num = 0
-                passed_num = 0
-                failed_num = 0
-                norun_num = 0
                 all_total_num = 0
                 all_passed_num = 0
                 all_failed_num = 0
                 all_norun_num = 0
-                fb, executable_days, starttime, deadline =  self.get_deadline_for_case(test_entity)
+                total_num = 0
+                passed_num = 0
+                failed_num = 0
+                norun_num = 0
                 for j in test_results:
                     all_total_num +=1
                     if j['last_runtime'] == 'NULL':
@@ -382,7 +387,7 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
         self.logger.info("all_norun_addr is {}".format(all_norun_addr))
         receivers = ['amy.c.liu@nokia-sbell.com']
         receivers = receivers + all_norun_addr
-        # self.logger.info(receivers)
+        self.logger.info(receivers)
         smtp_server = 'mail.emea.nsn-intra.net' 
 
         mail_msg = "<p>REP Case Execution Result, Send By TA...</p>"

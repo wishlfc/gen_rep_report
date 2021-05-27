@@ -25,14 +25,23 @@ fb_info =   {
             'FB2112':'2021,11,10-2021,12,7',
             'FB2113':'2021,12,8-2022,1,4'
             }
+# team_lpo = {
+#             'SRAN_Prod_HZH_RRM_1_Vrf': 'jian.jia@nokia-sbell.com',
+#             'SRAN_Prod_HZH_RRM_2_Vrf': 'liefeng.he@nokia-sbell.com',
+#             'SRAN_Prod_HZH_RRM_3_Vrf': 'jiana.song@nokia-sbell.com',
+#             'SRAN_Prod_HZH_RRM_4_Vrf': 'feiyan.chen@nokia-sbell.com',
+#             'SRAN_Prod_HZH_RRM_5_Vrf': 'haihua.wu@nokia-sbell.com',
+#             'SRAN_Prod_HZH_RRM_6_Vrf': 'liguo.zhang@nokia-sbell.com'
+# }
 team_lpo = {
-            'SRAN_Prod_HZH_RRM_1_Vrf': 'jian.jia@nokia-sbell.com',
-            'SRAN_Prod_HZH_RRM_2_Vrf': 'liefeng.he@nokia-sbell.com',
-            'SRAN_Prod_HZH_RRM_3_Vrf': 'jiana.song@nokia-sbell.com',
-            'SRAN_Prod_HZH_RRM_4_Vrf': 'feiyan.chen@nokia-sbell.com',
-            'SRAN_Prod_HZH_RRM_5_Vrf': 'haihua.wu@nokia-sbell.com',
-            'SRAN_Prod_HZH_RRM_6_Vrf': 'liguo.zhang@nokia-sbell.com'
+            'RAN_PZ_HAZ_1_SG01': 'jian.jia@nokia-sbell.com',
+            'RAN_PZ_HAZ_1_SG02': 'liefeng.he@nokia-sbell.com',
+            'RAN_PZ_HAZ_1_SG03': 'jiana.song@nokia-sbell.com',
+            'RAN_PZ_HAZ_1_SG04': 'feiyan.chen@nokia-sbell.com',
+            'RAN_PZ_HAZ_1_SG05': 'haihua.wu@nokia-sbell.com',
+            'RAN_PZ_HAZ_1_SG06': 'liguo.zhang@nokia-sbell.com'
 }
+
 class c_pet_rep_data(object):
 
     def __init__(self, aceesskey=''):
@@ -98,10 +107,12 @@ origin__project__pos_neg={}&portal__releases={}&test_entity__pos_neg={}&ti_scope
 
     def _get_tribe_data(self, test_entity):
         releases = 'SBTS00'
-        domain = 'MN_SRAN'
-        project = 'SRAN_SBTS'
+        # domain = 'MN_SRAN'
+        # project = 'SRAN_SBTS'
+        domain = 'mn_ran'
+        project = 'ran_st'
         limit='1000'
-        ca = 'SRAN_Prod_RRM'
+        ca = 'RAN_PZ_HAZ_1'
         tribe_info = self.get_tribe_case_data(ca, releases, domain, project, test_entity, limit)
         tribe_info = json.loads(tribe_info)
         results = tribe_info['results']
@@ -114,20 +125,12 @@ origin__project__pos_neg={}&portal__releases={}&test_entity__pos_neg={}&ti_scope
             team_info[team] = team_result
         return team_info
 
-    def _get_link(self, test_entity):
-        team = 'SRAN_Prod_HZH_RRM_6_Vrf'
-        releases = 'SBTS00'
-        domain = 'MN_SRAN'
-        project = 'SRAN_SBTS'
-        link = "https://rep-portal.wroclaw.nsn-rdnet.net/reports/qc/?organization=%22{}%22&releases={}&\
-domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain, project, test_entity)
-        return link
-
     def _get_team_link(self, team, test_entity):
-        # team = 'SRAN_Prod_HZH_RRM_6_Vrf'
         releases = 'SBTS00'
-        domain = 'MN_SRAN'
-        project = 'SRAN_SBTS'
+        # domain = 'MN_SRAN'
+        # project = 'SRAN_SBTS'
+        domain = 'mn_ran'
+        project = 'ran_st'
         link = "https://rep-portal.wroclaw.nsn-rdnet.net/reports/qc/?organization=%22{}%22&releases={}&\
 domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain, project, test_entity)
         return link
@@ -314,8 +317,6 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
                 output.append('<{} style="text-align:center" {}><font {}>{}</{}>'.format(tstr, colorbg, colorword, item, tstr))
             output.append('</tr>')
         output.append('</table>')
-        # if 'case' in test_entity.lower():
-        #     output.append('Click the link: {}'.format(self._get_link(test_entity.lower().split()[0])))
         output.append('<br/>')
         return output
 
