@@ -55,7 +55,7 @@ class c_pet_rep_data(object):
 
     def geturl(self, url):
         self.logger.debug('Retrieve url: {}'.format(url))
-        data = {'username': "a3liu", 'password': "xxxxxx"}
+        data = {'username': "a3liu", 'password': "Srq0422~"}
         headers = {'content-type': 'application/json',
                    'referer':'https://rep-portal.wroclaw.nsn-rdnet.net/login/',
                    'origin': 'https://rep-portal.wroclaw.nsn-rdnet.net',
@@ -347,7 +347,7 @@ domain={}&project={}&ti_scope=true&test_entity={}".format(team, releases, domain
         sender = 'I_MN_HZ_RRM6_TA@nokia-sbell.com'
         receivers = ['amy.c.liu@nokia-sbell.com']
         if level:
-            norun_lpo_list = self.get_all_norun_addr() + ['xiaodan.gu@nokia-sbell.com']
+            norun_lpo_list = ['xiaodan.gu@nokia-sbell.com', 'ning.du@nokia-sbell.com'] + self.get_all_norun_addr()
             ccer = 'bo-chris.wang@nokia-sbell.com'
             self.logger.info('Stil has no run cases team:{}'.format(norun_lpo_list))
         else:
